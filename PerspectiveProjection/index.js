@@ -1,17 +1,50 @@
-
 let canvas = null;
 let canvasW = 0;
 let canvasH = 0;
 
-let d = 0.1; //viewport z axis position
-let viewPortW = 1.0;
-let viewPortH = 1.0;
+let d = 0.2; //viewport z axis position
 let translateX = 0;
 let translateY = 0;
 let deltaX = 0.01;
 let deltaY = 0.01;
 let angle = 0;
+let angle2 = 0;
 let deltaAngle = 5;
+
+let vertsFront = [
+    [-1, 1, 1],
+    [1, 1,  1],
+    [1, -1, 1],
+    [-1, -1, 1]];
+
+let vertsBack = [
+    [-1, 1, 3],
+    [1, 1, 3],
+    [1, -1, 3],
+    [-1, -1, 3]
+];
+
+let center = [0, 0, 2.0];
+
+let triangles = [
+    [vertsBack[0], vertsBack[1], vertsBack[3]],
+    [vertsBack[1], vertsBack[2], vertsBack[3]],
+
+    [vertsFront[3], vertsFront[2], vertsBack[2]],
+    [vertsFront[3], vertsBack[3], vertsBack[2]],
+
+    [vertsFront[0], vertsFront[3], vertsBack[0]],
+    [vertsBack[0], vertsBack[3], vertsFront[3]],
+
+    [vertsFront[0], vertsFront[1], vertsBack[1]],
+    [vertsFront[0], vertsBack[0], vertsBack[1]],
+
+    [vertsFront[1], vertsBack[1], vertsBack[2]],
+    [vertsFront[1], vertsFront[2], vertsBack[2]],
+
+    [vertsFront[0], vertsFront[1], vertsFront[3]],
+    [vertsFront[1], vertsFront[2], vertsFront[3]],
+];
 
 function init(){
     canvas = document.getElementById("canvas");
@@ -24,7 +57,7 @@ function init(){
 
     setInterval(()=>{
         requestAnimationFrame(draw);
-    }, 500);
+    }, 200);
 }
 
 function rotate(x,y,angle){
@@ -38,31 +71,43 @@ function rotate(x,y,angle){
     return [rotx, roty];
 }
 
-function transformPoint(p1x, p1y, p1z, angle){
-    /*let rot = rotate(p1x, p1y, angle);
-    let rotx = p1x; //rot[0];
-    let roty = p1y; //rot[1];
-    let rotz = p1z;*/
+function transformPoint(p1x, p1y, p1z, angle, angle2){
+    //before applying rotation I should move the center of the cube to the origin (0,0,0)
+    //so the cube rotates over its center
+    p1x = center[0] - p1x;
+    p1y = center[1] - p1y;
+    p1z = center[2] - p1z;
 
     let rot = rotate(p1x, p1y, angle);
     let rotx = rot[0];
     let roty = rot[1];
-    let rotz = p1z;
+    let rotz =  p1z;
 
-    /*let rot = rotate(p1x, p1z, angle);
-    let rotx = rot[1];
-    let roty = p1y;
-    let rotz = rot[0];*/
+    let rot2 = rotate(p1x, p1z, angle2);
+    rotx = rot2[0];
+    roty = p1y;
+    rotz = rot2[1];
 
-     //apply perspective (from 3D to 2D)
-     let np1x = (rotx / rotz) * d;
-     let np1y = (roty / rotz) * d;
+    //after rotation I should move the center to the original position
+    rotx = rotx + center[0];
+    roty = roty + center[1];
+    rotz = rotz + center[2];
+
+    //apply perspective (from 3D to 2D)
+    let np1x = (rotx / rotz) * d;
+    let np1y = (roty / rotz) * d;
+
+    let viewportx = 1;
+    let viewporty = 1;
+
+    if(canvasW > canvasH)
+        viewportx = canvasW * 1.0 / canvasH;
+    else
+        viewporty = canvasH * 1.0 / canvasW;
 
     //convert to canvas coordinates
-
-
-    np1x = (np1x + 0.5) * canvasW;
-    np1y = (np1y + 0.5) * canvasW;
+    np1x = (np1x + viewportx / 2.0) / viewportx * canvasW;
+    np1y = (np1y + viewporty / 2.0 )/ viewporty * canvasH;
 
     np1x = Math.round(np1x);
     np1y = Math.round(np1y);
@@ -73,43 +118,8 @@ function transformPoint(p1x, p1y, p1z, angle){
 }
 
 function draw(){
-    let pz = 0.6;
-    let pz2 = 1.0;
-
-    let vertsFront = [
-        [-1, 1, pz],
-        [1, 1,  pz],
-        [1, -1, pz],
-        [-1, -1, pz]];
-
-    let vertsBack = [
-        [-1, 1, pz2],
-        [1, 1, pz2],
-        [1, -1, pz2],
-        [-1, -1, pz2]
-    ];
-
-    let triangles = [
-        [vertsFront[0], vertsFront[1], vertsFront[3]],
-        [vertsFront[1], vertsFront[2], vertsFront[3]],
-
-        [vertsFront[1], vertsBack[1], vertsBack[2]],
-        [vertsFront[1], vertsFront[2], vertsBack[2]],
-
-        [vertsFront[0], vertsFront[1], vertsBack[1]],
-        [vertsFront[0], vertsBack[0], vertsBack[1]],
-
-        [vertsFront[0], vertsFront[3], vertsBack[0]],
-        [vertsBack[0], vertsBack[3], vertsFront[3]],
-
-        [vertsFront[3], vertsFront[2], vertsBack[2]],
-        [vertsFront[3], vertsBack[3], vertsBack[2]],
-
-        [vertsBack[0], vertsBack[1], vertsBack[3]],
-        [vertsBack[1], vertsBack[2], vertsBack[3]],
-    ];
-
-    angle += deltaAngle;
+    angle += 4;
+    angle2 += 6;
     let colors = ["green", "green", "blue", "blue", "red", "red", "yellow", "yellow", "orange", "orange", "black", "black"];
     let ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvasW, canvasH);
@@ -120,9 +130,9 @@ function draw(){
         let pt2 = triangle1[1];
         let pt3 = triangle1[2];
     
-        let p1 = transformPoint(pt1[0], pt1[1], pt1[2], angle);
-        let p2 = transformPoint(pt2[0], pt2[1], pt2[2], angle);
-        let p3 = transformPoint(pt3[0], pt3[1], pt3[2], angle);
+        let p1 = transformPoint(pt1[0], pt1[1], pt1[2], angle, angle2);
+        let p2 = transformPoint(pt2[0], pt2[1], pt2[2], angle, angle2);
+        let p3 = transformPoint(pt3[0], pt3[1], pt3[2], angle, angle2);
 
     
         let region = new Path2D();
